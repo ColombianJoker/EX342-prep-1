@@ -1,4 +1,5 @@
-# EX342-prep-1
+# Labs to prepare for Red Hat's **EX342 Certification Test**
+
 Labs for preparation for Red Hat EX342 test
 
 ---
