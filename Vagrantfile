@@ -2,7 +2,6 @@ require 'fileutils'
 
 Vagrant.configure("2") do |config|
 
-  # Define the 5 nodes required for the practice exam with their static IPs
   vms = [
     { name: "ansible-control", ip: "192.168.56.10", mem: "2048", cpus: "2" },
     { name: "ansible2", ip: "192.168.56.12", mem: "2048", cpus: "1" },
@@ -13,7 +12,6 @@ Vagrant.configure("2") do |config|
 
   vms.each do |opts|
     config.vm.define opts[:name] do |node|
-      # Using your validated AlmaLinux 9 box
       node.vm.box = "bento/almalinux-9"
       node.vm.box_version = "202511.24.0"
       
@@ -21,26 +19,21 @@ Vagrant.configure("2") do |config|
       node.ssh.password = "vagrant"
       node.ssh.forward_agent = true
 
-      # ONLY use a private network to avoid overloading VMware vmnet creation
-      # This provides the static IPs necessary for the Ansible inventory
       node.vm.network "private_network", ip: opts[:ip]
 
       node.vm.provider "vmware_desktop" do |vmw|
         vmw.memory = opts[:mem]
         vmw.vmx["numvcpus"] = opts[:cpus]
-        vmw.vmx["ethernet0.pcislotnumber"] = "160"
-
-        # Attach 1GB secondary disk ONLY to ansible5.hl.local[span_2](start_span)[span_2](end_span)
+        # Removed the hardcoded ethernet0.pcislotnumber to prevent interface collisions
+        
         if opts[:disk]
           disk_path = File.expand_path(".vagrant/machines/#{opts[:name]}/vmware_desktop/#{opts[:name]}_disk2.vmdk")
           
-          # Map it as SCSI so the OS sees it as /dev/sdb[span_3](start_span)[span_3](end_span)
           vmw.vmx["scsi0:1.present"] = "TRUE"
           vmw.vmx["scsi0:1.fileName"] = disk_path
         end
       end
 
-      # Pre-boot trigger to create the 1GB disk for ansible5.hl.local[span_4](start_span)[span_4](end_span)
       if opts[:disk]
         node.trigger.before :up do |trigger|
           trigger.name = "Creating 1GB disk for #{opts[:name]}"
@@ -59,8 +52,15 @@ Vagrant.configure("2") do |config|
         end
       end
 
-      node.vm.provision "shell", inline: "ip -4 -o a"
+      # Fix for AlmaLinux 9 DHCP/machine-id cloning bugs
+      node.vm.provision "shell", inline: <<-SHELL
+        echo "Fixing machine-id..."
+        rm -f /etc/machine-id
+        dbus-uuidgen --ensure=/etc/machine-id
+        systemctl restart NetworkManager
+        sleep 2
+        ip -4 -o a
+      SHELL
     end
   end
-
 end
