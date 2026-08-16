@@ -2,12 +2,13 @@ require 'fileutils'
 
 Vagrant.configure("2") do |config|
 
+  # Ports are explicitly defined as integers here
   vms = [
-    { name: "ansible-control", ip: "192.168.56.10", mem: "2048", cpus: "2" },
-    { name: "ansible2", ip: "192.168.56.12", mem: "2048", cpus: "1" },
-    { name: "ansible3", ip: "192.168.56.13", mem: "2048", cpus: "1" },
-    { name: "ansible4", ip: "192.168.56.14", mem: "2048", cpus: "1" },
-    { name: "ansible5", ip: "192.168.56.15", mem: "2048", cpus: "1", disk: true }
+    { name: "ansible-control", ip: "192.168.56.10", port: 2200, mem: "2048", cpus: "2" },
+    { name: "ansible2", ip: "192.168.56.12", port: 2202, mem: "2048", cpus: "1" },
+    { name: "ansible3", ip: "192.168.56.13", port: 2203, mem: "2048", cpus: "1" },
+    { name: "ansible4", ip: "192.168.56.14", port: 2204, mem: "2048", cpus: "1" },
+    { name: "ansible5", ip: "192.168.56.15", port: 2205, mem: "2048", cpus: "1", disk: true }
   ]
 
   vms.each do |opts|
@@ -19,12 +20,16 @@ Vagrant.configure("2") do |config|
       node.ssh.password = "vagrant"
       node.ssh.forward_agent = true
 
+      # The standard, correct way to strictly enforce the SSH port mapping
+      node.vm.network "forwarded_port", guest: 22, host: opts[:port], id: "ssh", host_ip: "127.0.0.1", auto_correct: false
+
       node.vm.network "private_network", ip: opts[:ip]
 
       node.vm.provider "vmware_desktop" do |vmw|
         vmw.memory = opts[:mem]
         vmw.vmx["numvcpus"] = opts[:cpus]
         vmw.vmx["ethernet0.pcislotnumber"] = "160"
+        vmw.vmx["ethernet1.pcislotnumber"] = "256"
         
         if opts[:disk]
           disk_path = File.expand_path(".vagrant/machines/#{opts[:name]}/vmware_desktop/#{opts[:name]}_disk2.vmdk")
