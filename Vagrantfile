@@ -24,7 +24,7 @@ Vagrant.configure("2") do |config|
       node.vm.provider "vmware_desktop" do |vmw|
         vmw.memory = opts[:mem]
         vmw.vmx["numvcpus"] = opts[:cpus]
-        # Removed the hardcoded ethernet0.pcislotnumber to prevent interface collisions
+        vmw.vmx["ethernet0.pcislotnumber"] = "160"
         
         if opts[:disk]
           disk_path = File.expand_path(".vagrant/machines/#{opts[:name]}/vmware_desktop/#{opts[:name]}_disk2.vmdk")
