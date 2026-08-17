@@ -1,0 +1,24 @@
+---
+- name: Configure MOTD (message of the day) based on group of host in inventory
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Set MOTD for Proxy servers
+      ansible.builtin.copy:
+        content: "Welcome to HAProxy server"
+        dest: /etc/motd
+      when: "'proxy' in group_names"
+
+    - name: Set MOTD for Web servers
+      ansible.builtin.copy:
+        content: "Welcome to Apache server"
+        dest: /etc/motd
+      when: "'webservers' in group_names"
+
+    - name: Set MOTD for Database servers
+      ansible.builtin.copy:
+        content: "Welcome to MySQL server"
+        dest: /etc/motd
+      when: "'database' in group_names"
+

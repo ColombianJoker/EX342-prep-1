@@ -1,0 +1,72 @@
+---
+# 1. Primary partirion number 1 of size 800MB on device /dev/sdb
+- name: Create primary partition of 800MB on /dev/sdb
+  parted:
+    device: /dev/sdb
+    number: 1
+    part_end: 800MB
+    state: present
+
+# 2. LVM volume group vg_database using the primary partition
+- name: Create volume group vg_database
+  lvg:
+    vg: vg_database
+    pvs: /dev/sdb1
+
+# 3. LVM logical volume lv_mysql of size 512MB in vg_database
+- name: Create logical volume lv_mysql
+  lvol:
+    vg: vg_database
+    lv: lv_mysql
+    size: 512m
+
+# 4. XFS filesystem on the logical volume lv_mysql
+- name: Create XFS filesystem on lv_mysql
+  filesystem:
+    fstype: xfs
+    dev: /dev/vg_database/lv_mysql
+
+# 5. Permanently mount on /mnt/mysql_backyps
+- name: Mount lv_mysql permanently
+  mount:
+    path: /mnt/mysql_backups
+    src: /dev/vg_database/lv_mysql
+    fstype: xfs
+    state: mounted
+
+# 6. Install mysql-community-server package
+- name: Install MySQL packages
+  dnf:
+    name:
+      - mysql-community-server
+      - python3-PyMySQL
+    state: present
+
+# 10. Generate configuration file from template my.cnf.j2
+- name: Deploy MySQL configuration file template
+  template:
+    src: my.cnf.j2
+    dest: /etc/my.cnf.d/sample-mysql.cnf
+  notify: Restart MySQL
+
+# 7. Configure firewall to allow incoming MySQL traffic
+- name: Open MySQL port in firewall
+  firewalld:
+    port: 3306/tcp
+    state: enabled
+    permanent: yes
+    immediate: yes
+
+# 8. Start and enable MySQL service
+- name: Ensure MySQL is started and enabled
+  systemd_service:
+    service: mysqld
+    state: started
+    enabled: yes
+
+# 9. Set MySQL root user password from the variable database_password
+- name: Set MySQL root password
+  mysql_user:
+    name: root
+    password: "{{ database_password }}"
+    host_all: yes

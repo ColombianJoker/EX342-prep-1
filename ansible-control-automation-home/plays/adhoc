@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+# 1. User 'automation' is created on all inventory hosts
+ansible -u vagrant -b -m user -a 'name=automation state=present' all
+
+# 2. SSH key is copied to all inventory hosts for the 'automation' to .ssh/authorized_keys
+ansible -u vagrant -b -m authorized_key -a "user=automation state=present key=\"$(cat /home/automation/.ssh/id_rsa.pub)i\"" all
+
+# 3. The 'automation'user is allowed to elevate privileges on all inventory hosts without password
+ansible -u vagrant -b -m copy -a 'content="automation ALL=(ALL) NOPASSWD: ALL\n" dest=/etc/sudoers.d/automation validate="visudo -cf %s" mode=0440' all
+

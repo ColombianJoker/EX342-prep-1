@@ -5,12 +5,12 @@ all:
         ansible-control:
           ansible_host: 127.0.0.1
           ansible_user: vagrant
-          ansible_port: 2204
+          ansible_port: 2203
           ansible_ssh_private_key_file: /Users/e/Dropbox/Documents/Code/Ansible/RHCE/RH-EX342-Prep-1/.vagrant/machines/ansible-control/vmware_desktop/private_key
         ansible2:
           ansible_host: 127.0.0.1
           ansible_user: vagrant
-          ansible_port: 2202
+          ansible_port: 2204
           ansible_ssh_private_key_file: /Users/e/Dropbox/Documents/Code/Ansible/RHCE/RH-EX342-Prep-1/.vagrant/machines/ansible2/vmware_desktop/private_key
         ansible3:
           ansible_host: 127.0.0.1

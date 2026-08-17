@@ -1,0 +1,13 @@
+---
+- name: Configure Scheduled Tasks on Proxy servers
+  hosts: proxy
+  become: true
+
+  tasks:
+    - name: Create a root crontab task that runs every hour
+      ansible.builtin.cron:
+        name: "Log date to time.log"
+        user: root
+        minute: 0
+        job: "date >> /var/log/time.log"
+        state: present

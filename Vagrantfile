@@ -2,13 +2,13 @@ require 'fileutils'
 
 Vagrant.configure("2") do |config|
 
-  # Ports are explicitly defined as integers here
+  # Port is only defined for the control node now
   vms = [
     { name: "ansible-control", ip: "192.168.56.10", port: 2200, mem: "2048", cpus: "2" },
-    { name: "ansible2", ip: "192.168.56.12", port: 2202, mem: "2048", cpus: "1" },
-    { name: "ansible3", ip: "192.168.56.13", port: 2203, mem: "2048", cpus: "1" },
-    { name: "ansible4", ip: "192.168.56.14", port: 2204, mem: "2048", cpus: "1" },
-    { name: "ansible5", ip: "192.168.56.15", port: 2205, mem: "2048", cpus: "1", disk: true }
+    { name: "ansible2", ip: "192.168.56.12", mem: "2048", cpus: "1" },
+    { name: "ansible3", ip: "192.168.56.13", mem: "2048", cpus: "1" },
+    { name: "ansible4", ip: "192.168.56.14", mem: "2048", cpus: "1" },
+    { name: "ansible5", ip: "192.168.56.15", mem: "2048", cpus: "1", disk: true }
   ]
 
   vms.each do |opts|
@@ -20,8 +20,10 @@ Vagrant.configure("2") do |config|
       node.ssh.password = "vagrant"
       node.ssh.forward_agent = true
 
-      # The standard, correct way to strictly enforce the SSH port mapping
-      node.vm.network "forwarded_port", guest: 22, host: opts[:port], id: "ssh", host_ip: "127.0.0.1", auto_correct: false
+      # ONLY apply the explicit port forward to ansible-control
+      if opts[:name] == "ansible-control"
+        node.vm.network "forwarded_port", guest: 22, host: opts[:port], id: "ssh", host_ip: "127.0.0.1", auto_correct: false
+      end
 
       node.vm.network "private_network", ip: opts[:ip]
 
@@ -31,11 +33,11 @@ Vagrant.configure("2") do |config|
         vmw.vmx["ethernet0.pcislotnumber"] = "160"
         vmw.vmx["ethernet1.pcislotnumber"] = "256"
         
+        # Attach the 1GB disk only to ansible5
         if opts[:disk]
           disk_path = File.expand_path(".vagrant/machines/#{opts[:name]}/vmware_desktop/#{opts[:name]}_disk2.vmdk")
-          
-          vmw.vmx["scsi0:1.present"] = "TRUE"
-          vmw.vmx["scsi0:1.fileName"] = disk_path
+          vmw.vmx["nvme0:1.present"] = "TRUE"
+          vmw.vmx["nvme0:1.fileName"] = disk_path
         end
       end
 
@@ -50,7 +52,6 @@ Vagrant.configure("2") do |config|
               puts "Creating 1GB virtual disk at #{disk_path}..."
               FileUtils.mkdir_p(disk_dir)
               vdiskmanager = "/Applications/VMware Fusion.app/Contents/Library/vmware-vdiskmanager"
-              
               system("\"#{vdiskmanager}\" -c -s 1GB -a lsilogic -t 0 \"#{disk_path}\"")
             end
           end

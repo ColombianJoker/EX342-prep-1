@@ -1,0 +1,25 @@
+---
+- name: Configure SSH Server
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Update SSHD configuration
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+        backup: yes
+      loop:
+        - { regexp: "^#? *Banner", line: "Banner /etc/motd" }
+        - { regexp: "^#? *X11Forwarding", line: "X11Forwarding no" }
+        - { regexp: "^#? *MaxAuthTries", line: "MaxAuthTries 3" }
+      notify: Restart ssh service
+
+  handlers:
+    - name: Restart ssh service
+      ansible.builtin.systemd_service:
+        service: sshd
+        state: restarted
+

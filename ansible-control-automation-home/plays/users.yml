@@ -1,0 +1,52 @@
+---
+- name: Configure Webserver Users
+  hosts: webservers
+  become: true
+  vars_files:
+    - secret.yml
+    - vars/user_list.yml
+
+  tasks:
+    - name: Create users with UID starting with 1 on webservers
+      ansible.builtin.user:
+        name: "{{ item.username }}"
+        uid: "{{ item.uid }}"
+        groups: wheel
+        shell: /bin/bash
+        password: "{{ user_password | password_hash('sha512') }}"
+      loop: "{{ users }}"
+      when: item.uid | string | regex_search('^1')
+
+    - name: Deploy SSH key for webserver users
+      ansible.builtin.authorized_key:
+        user: "{{ item.username }}"
+        key: "{{ lookup('file', '/home/automation/.ssh/id_rsa.pub') }}"
+      loop: "{{ users }}"
+      when: item.uid | string | regex_search('^1')
+
+- name: Configure Database Users
+  hosts: database
+  become: true
+  vars_files:
+    - secret.yml
+    - vars/user_list.yml
+
+  tasks:
+    - name: Create users with UID starting with 2 on database servers
+      ansible.builtin.user:
+        name: "{{ item.username }}"
+        uid: "{{ item.uid }}"
+        groups: wheel
+        shell: /bin/bash
+        password: "{{ user_password | password_hash('sha512') }}"
+      loop: "{{ users }}"
+      when: item.uid | string | regex_search('^2')
+
+    - name: Deploy SSH key for database users
+      ansible.builtin.authorized_key:
+        user: "{{ item.username }}"
+        key: "{{ lookup('file', '/home/automation/.ssh/id_rsa.pub') }}"
+      loop: "{{ users }}"
+      when: item.uid | string | regex_search('^2')
+
+
