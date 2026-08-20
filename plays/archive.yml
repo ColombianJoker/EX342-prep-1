@@ -1,0 +1,19 @@
+---
+- name: Task 14 - Use archiving
+  hosts: database
+  gather_facts: false
+  become: true
+  vars:
+    - list: "/mnt/mysql_backups/database_list.txt"
+    - backup: "/mnt/mysql_backups/archive.gz"
+
+  tasks:
+    - name: Create database_list.txt
+      ansible.builtin.copy:
+        content: "dev,test,qa,prod"
+        dest: "{{ list }}"
+
+    - name: Create backup of database_list.txt
+      community.general.archive:
+        path: "{{ list }}"
+        dest: "{{ backup }}"

@@ -1,0 +1,23 @@
+---
+- name: Task 15 - Work with Ansible Facts
+  hosts: database
+  become: true
+
+  tasks:
+    - name: Ensure custom facts directory exists
+      ansible.builtin.file:
+        path: /etc/ansible/facts.d
+        state: directory
+        mode: 0755
+
+    - name: Create custom fact file
+      ansible.builtin.copy:
+        dest: /etc/ansible/facts.d/custom.fact
+        content: |
+          [sample_exam]
+          server_role=mysql
+        mode: 0644
+
+    - name: Show fact variable
+      ansible.builtin.debug:
+        msg: "{{ ansible_local.custom.sample_exam }}"

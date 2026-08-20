@@ -1,0 +1,7 @@
+---
+# handlers file for sample-apache
+- name: Restart Apache
+  ansible.builtin.systemd:
+    service: httpd
+    state: restarted
+

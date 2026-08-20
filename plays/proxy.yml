@@ -1,0 +1,42 @@
+---
+# 1. Gather facts, including known IP addresses of webservers
+- name: Gather facts for webservers
+  hosts: webservers
+  gather_facts: true
+
+# 2. Configure the proxies
+- name: Deploy HAProxy using Role from GeerlingGuy
+  hosts: proxy
+  become: true
+  gather_facts: true
+  vars:
+    ansible_remote_tmp: /tmp
+
+  # Run before role
+  pre_tasks:
+    - name: Enable ports on firewall
+      ansible.builtin.firewalld:
+        service: http
+        state: enabled
+        permanent: true
+        immediate: true
+
+    - name: Build address list of backends
+      ansible.builtin.set_fact:
+        dyn_backends: "{{ dyn_backends | default([]) + [{ 'name': item, 'address': hostvars[item]['ansible_default_ipv4']['address'] ~':80' }] }}"
+      loop: "{{ groups['webservers'] }}"
+    
+    - name: Show resulting backend address list
+      ansible.builtin.debug:
+        msg: "{{ dyn_backends }}"
+
+  roles:
+    - name: Ensure HAProxy is installed and running
+      role: geerlingguy.haproxy
+      vars:
+        # Pass the dynamic backend list
+        haproxy_backend_servers: "{{ dyn_backends }}"
+        # Override the '-q' validation on default role tasks
+        haproxy_config_validate: "haproxy -f %s -c"
+        # Clar deprecated string variable to make it HAProxy compatible
+        haproxy_backend_httpchk: ""

@@ -1,0 +1,37 @@
+---
+# 1a. Ensure packages httpd, mod_ssl, php are installed
+- name: Ensure http, mod_ssl, php modules are installed
+  ansible.builtin.dnf:
+    name:
+      - httpd
+      - mod_ssl
+      - php
+    state: present
+
+# 4. Ensure the configuration is created from the template
+- name: Apply template to the configuration file
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: /var/www/html/index.html
+    mode: 0644
+    owner: apache
+  notify: Restart Apache
+
+# 1.b Ensure httpd service is running and enabled
+- name: Ensure httpd service is running and enabled
+  ansible.builtin.systemd:
+    service: httpd
+    state: started
+    enabled: true
+
+# 2. Ensure http and https ports are enabled
+- name: Ensure http and https port are enabled
+  ansible.posix.firewalld:
+    service: "{{ item }}"
+    state: enabled
+    permanent: true
+    immediate: yes
+  loop:
+    - http
+    - https
+

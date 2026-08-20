@@ -1,0 +1,20 @@
+---
+- name: Task 17 - Services
+  hosts: webservers
+  become: true
+  gather_facts: false
+  vars:
+    target: "multi-user.target"
+
+  tasks:
+    - name: Get current boot target
+      ansible.builtin.command: >
+        systemctl get-default
+      register: curr_target
+      changed_when: false
+ 
+    - name: Set boot target to "{{ target }}"
+      ansible.builtin.command: >
+        systemctl set-default "{{ target }}"
+      when: curr_target.stdout != target
+

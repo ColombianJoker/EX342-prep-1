@@ -1,0 +1,15 @@
+---
+- name: Task 8 - Software Repositories
+  hosts: database
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Configure MySQL 8.0 Community repository
+      ansible.builtin.yum_repository:
+        name: mysql80-community
+        description: "MySQL 8.0 YUM Repo"
+        baseurl: "http://repo.mysql.com/yum/mysql-8.0-community/el/{{ ansible_distribution_major_version }}/{{ ansible_architecture }}/"
+        gpgkey: http://repo.mysql.com/RPM-GPG-KEY-mysql
+        gpgcheck: true
+        enabled: true

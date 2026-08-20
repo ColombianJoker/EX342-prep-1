@@ -1,0 +1,12 @@
+---
+- name: Task 7 Scheduled Tasks
+  hosts: proxy
+  become: true
+  gather_facts: false
+  
+  tasks:
+    - name: Schedule for cron at xx:0
+      ansible.builtin.cron:
+        name: "Register date each hour"
+        minute: 0
+        job: "date >> /var/log/time.log"

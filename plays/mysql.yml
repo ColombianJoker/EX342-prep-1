@@ -1,0 +1,12 @@
+---
+- name: Deploy MySQL Database Server
+  hosts: database
+  become: true
+  gather_facts: true
+  vars_files:
+    - secret.yml
+    - vars/user_list.yml
+  
+  roles:
+    - sample-mysql
+

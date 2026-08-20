@@ -1,0 +1,58 @@
+---
+- name: Task 6 for Webserver Users
+  hosts: webservers
+  become: true
+  gather_facts: false
+  vars_files:
+    - secret.yml
+    - vars/user_list.yml
+
+  tasks:
+    - name: Show password
+      ansible.builtin.debug:
+        msg: "{{ user_password }}"
+      loop: "{{ users }}"
+      when: item.uid | string is match('^1')
+
+    - name: Create users with uid~^1 on webservers
+      ansible.builtin.user:
+        name: "{{ item.username }}"
+        uid: "{{ item.uid }}"
+        groups: "wheel"
+        shell: "/bin/bash"
+        password: "{{ user_password | string | password_hash('sha512') }}"
+      loop: "{{ users }}"
+      when: item.uid | string is match('^1')
+
+    - name: Deploy SSH key for webserver users
+      ansible.builtin.authorized_key:
+        user: "{{ item.username }}"
+        key: "{{ lookup('file', 'id_rsa.pub') }}"
+      loop: "{{ users }}"
+      when: item.uid | string is match('^1')
+
+- name: Task 6 for Database Users
+  hosts: database
+  become: true
+  vars_files:
+    - secret.yml
+    - vars/user_list.yml
+  
+  tasks:
+    - name: Create users with uid~^2 on database servers
+      ansible.builtin.user:
+        name: "{{ item.username }}"
+        uid: "{{ item.uid }}"
+        groups: "wheel"
+        shell: "/bin/bash"
+        password: "{{ database_password | string | password_hash('sha512') }}"
+      loop: "{{ users }}"
+      when: item.uid | string is match('^2')
+
+    - name: Deploy SSH key for database server users
+      ansible.builtin.authorized_key:
+        user: "{{ item.username }}"
+        key: "{{ lookup('file', 'id_rsa.pub') }}"
+      loop: "{{ users }}"
+      when: item.uid | string is match('^2')
+ 

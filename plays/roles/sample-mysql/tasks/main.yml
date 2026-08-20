@@ -1,0 +1,113 @@
+---
+# 1. Primary partition number 1 of size 800MB on device /dev/nmve0n2
+- name: Ensure primary partition of 800MB on /dev/nvme0n2
+  community.general.parted:
+    device: /dev/nvme0n2
+    number: 1
+    part_end: 800MB
+    state: present
+
+# 2. An LVM volume group called vg_database is created that uses the partition
+- name: Ensure volume group 'vg_database'
+  community.general.lvg:
+    vg: vg_database
+    pvs: /dev/nvme0n2p1
+
+# 3. An LVM logical volume called lv_mysql is created of size 512MB in vg_database
+- name: Ensure logical volume 'lv_mysql' in 'vg_database'
+  community.general.lvol:
+    vg: vg_database
+    lv: lv_mysql
+    size: 512m
+
+# 4. An XFS filesystem on the logical volume lv_mysql is created
+- name: Ensure XFS filesystem in 'lv_mysql'
+  community.general.filesystem:
+    fstype: xfs
+    dev: /dev/vg_database/lv_mysql
+
+# 5. Logical volume lv_mysql is permanently mounted on /mnt/mysql_backups
+- name: Ensure /mnt/mysql_backups is mounted
+  ansible.posix.mount:
+    path: /mnt/mysql_backups
+    src: /dev/vg_database/lv_mysql
+    fstype: xfs
+    state: mounted
+
+# 6a. Import the GPG keys securely before installing
+- name: Import MySQL GPG keys
+  ansible.builtin.rpm_key:
+    key: "{{ item }}"
+    state: present
+  loop:
+    - https://repo.mysql.com/RPM-GPG-KEY-mysql
+    - https://repo.mysql.com/RPM-GPG-KEY-mysql-2023
+
+# 6b. Install mysql-community-server package
+- name: Ensure MySQL packages are installed
+  ansible.builtin.dnf:
+    name:
+      - mysql-community-server
+      - python3-PyMySQL
+    state: present
+
+# 7. Firewall allows 3306/TCP traffic
+- name: Ensure trafic thru 3306/TCP passes
+  ansible.posix.firewalld:
+    port: 3306/tcp
+    state: enabled
+    permanent: true
+    immediate: yes
+
+# 10. Generate MySQL Server configuration file from template
+- name: Generate MySQL Server configuration file from template
+  ansible.builtin.template:
+    src: my.cnf.j2
+    dest: /etc/my.cnf.d/sample-mysql.cnf
+  notify: Restart MySQL
+
+# 9. Start and enable MySQL service
+- name: Ensure MySQL starts
+  ansible.builtin.systemd:
+    service: mysqld
+    state: started
+    enabled: yes
+
+# 8a. MySQL root user password should be set from 'database_password' variable
+- name: Check if MySQL root password is set
+  ansible.builtin.command: mysql -uroot -p"{{ database_password }}" -e"SELECT 1"
+  register: root_pwd_check
+  ignore_errors: yes
+  changed_when: false
+
+# 8b. Get temporary MySQL password if needed
+- name: Get temporary MySQL password from log if needed
+  ansible.builtin.shell: awk '/temporary password/{print $NF}' /var/log/mysqld.log | tail -n1
+  register: mysql_temp_password
+  when: root_pwd_check.rc != 0
+  changed_when: false
+
+# 8.c Reset the expired first password to satisfy policy
+- name: Reset expired first MySQL root password to interim complex password
+  ansible.builtin.command: >
+    mysql -uroot -p"{{ mysql_temp_password.stdout }}" --connect-expired-password
+    -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'ComplexPassw0rd!2026';"
+  when: root_pwd_check.rc != 0
+
+# 8.d Lower the MySQL password policy
+- name: Lower the MySQL password policy
+  ansible.builtin.command: >
+    mysql -uroot -p"ComplexPassw0rd!2026"
+    -e "SET GLOBAL validate_password.policy=LOW; SET GLOBAL validate_password.length=4;"
+  when: root_pwd_check.rc != 0
+  ignore_errors: yes
+
+# 8.e Set the password from the vault
+- name: Set the MySQL password ftom the vault
+  community.mysql.mysql_user:
+    name: root
+    password: "{{ database_password }}"
+    host_all: yes
+    login_user: root
+    login_password: "{{ 'ComplexPassw0rd!2026' if root_pwd_check.rc != 0 else database_password }}" 
+

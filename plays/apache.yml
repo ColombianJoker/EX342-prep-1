@@ -1,0 +1,9 @@
+---
+- name: Ensure Apache is installed, configured and running on webservers
+  hosts: webservers
+  become: true
+  gather_facts: true
+
+  roles:
+    - sample-apache
+

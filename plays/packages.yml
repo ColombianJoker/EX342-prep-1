@@ -1,0 +1,24 @@
+---
+- name: Task 16 - Software Packages
+  hosts: all
+  gather_facts: true
+  become: true
+
+  tasks:
+    - name: Install 'tcpdump' & 'mailx' packages ignoring errors
+      ansible.builtin.dnf:
+        name:
+          - tcpdump
+          - mailx
+        state: present
+      ignore_errors: true
+      when: '"proxy" in group_names'
+
+    - name: Install 'lsof' & 'mailx' packages ignoring errors
+      ansible.builtin.dnf:
+        name:
+          - lsof
+          - mailx
+      ignore_errors: true
+      when: '"database" in group_names'
+

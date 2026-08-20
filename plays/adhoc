@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -x
+# 1. Create the user 'automation' with the password 'devops'
+# We use Jinja2 filtering to hash the password on the fly inside the container
+ansible all -u admin -b -m user -a 'name=automation password={{ "devops" | password_hash("sha512") }} state=present'
+
+# 2. Copy the SSH key
+# The $(cat ...) substitution happens on your local host, then injects the string into the container command
+ansible-navigator exec -- "ansible all -u admin -b -m ansible.posix.authorized_key -a 'user=automation state=present key=\"$(cat ~/.ssh/id_rsa.pub)\"'"
+
+# 3. Configure passwordless sudo
+# Note: The module parameter is 'content=', not 'contents='
+ansible all -u admin -b -m copy -a 'content="automation ALL=(ALL) NOPASSWD: ALL\n" dest=/etc/sudoers.d/automation mode=0440 validate="visudo -cf %s"'
+

@@ -1,0 +1,20 @@
+---
+- name: Task 13 - Use conditionals to control play execution
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks: 
+    - name: Set swappiness on hosts with RAM>2048MB
+      ansible.posix.sysctl:
+        name: vm.swappines
+        value: 10
+        state: present
+        reload: true
+      when: ansible_memtotal_mb > 2048
+
+    - name: Display error message if RAM<2048MB
+      ansible.builtin.debug:
+        msg: Server memory less than 2048MB
+      when: ansible_memtotal_mb < 2048
+ 

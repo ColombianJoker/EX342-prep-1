@@ -1,0 +1,21 @@
+---
+- name: Gather facts for all hosts
+  hosts: all
+  gather_facts: true
+
+- name: Task 18 - Create and use templates
+  hosts: database
+  become: true
+  gather_facts: false
+  vars:
+    list: "/etc/server_list.txt"
+
+  tasks:
+    - name: Create {{ list }} from template
+      ansible.builtin.template:
+        src: server_list.j2
+        dest: "{{ list }}"
+        mode: 0600
+        owner: automation
+        setype: net_conf_t
+ 
