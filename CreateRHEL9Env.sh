@@ -27,14 +27,18 @@ if [ -n "$FUSION" ] ; then
 
         # 2. Create the secondary 1GB disk for ansible5
         if [ "$i" = "5" ] ; then
-            echo "$PRGNAME: Creating 1GB disk for node ${i}..."
+            if [ ! -f "$VMDEST/ansible${i}.vmwarevm/disk2.vmdk" ] ; then
+            printf "$PRGNAME: Creating 1GB disk for node ${i}..."
             "$VDISK" -c -s 1GB -a lsilogic -t 0 "$VMDEST/ansible${i}.vmwarevm/disk2.vmdk"
+        else
+            printf "$PRGNAME: ansible${i}.vmwarevm/disk2.vmdk exists, skipping creation\n" >&2
         fi
 
     done
     # 3. Boot up the cluster! (Using nogui so they run headlessly in the background)
     echo "$PRGNAME: Starting cluster..."
     for i in -control 2 3 4 5 ; do
+        printf "$PRGNAME: starting ansible${i}.vmwarevm ...\n" >&2
         "$VMRUN" start "$VMDEST/ansible${i}.vmwarevm/ansible${i}.vmx" nogui
     done
     echo "$PRGNAME: Cluster deployment complete!" >&2
