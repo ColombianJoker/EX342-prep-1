@@ -28,10 +28,11 @@ if [ -n "$FUSION" ] ; then
         # 2. Create the secondary 1GB disk for ansible5
         if [ "$i" = "5" ] ; then
             if [ ! -f "$VMDEST/ansible${i}.vmwarevm/disk2.vmdk" ] ; then
-            printf "$PRGNAME: Creating 1GB disk for node ${i}..."
-            "$VDISK" -c -s 1GB -a lsilogic -t 0 "$VMDEST/ansible${i}.vmwarevm/disk2.vmdk"
-        else
-            printf "$PRGNAME: ansible${i}.vmwarevm/disk2.vmdk exists, skipping creation\n" >&2
+                printf "$PRGNAME: Creating 1GB disk for node ${i}..."
+                "$VDISK" -c -s 1GB -a lsilogic -t 0 "$VMDEST/ansible${i}.vmwarevm/disk2.vmdk"
+            else
+                printf "$PRGNAME: ansible${i}.vmwarevm/disk2.vmdk exists, skipping creation\n" >&2
+            fi
         fi
 
     done
